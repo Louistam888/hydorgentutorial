@@ -1,6 +1,6 @@
 import {redirect} from '@shopify/remix-oxygen';
 import {useLoaderData} from '@remix-run/react';
-import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
+import {getPaginationVariables, Analytics, getSeoMeta} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {ProductItem} from '~/components/ProductItem';
@@ -8,22 +8,75 @@ import {ProductItem} from '~/components/ProductItem';
 /**
  * @type {MetaFunction<typeof loader>}
  */
-export const meta = ({data}) => {
-  return [{title: `Hydrogen | ${data?.collection.title ?? ''} Collection`}];
+export const meta = ({data, matches}) => {
+  return getSeoMeta(data?.seo || {}, matches[0]?.data?.seo);
 };
 
 /**
  * @param {LoaderFunctionArgs} args
  */
-export async function loader(args) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+// Define the meta function (Remix calls this automatically)
+export const meta = ({data}) => {
+  // Pass SEO data to getSeoMeta function (This will be injected into the <head>)
+  return getSeoMeta(data?.seo || {});
+};
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+export async function loader({request, params, context}) {
+  const {handle} = params;
+  const {storefront} = context;
 
-  return {...deferredData, ...criticalData};
+  const paginationVariables = getPaginationVariables(request, {
+    pageBy: 8,
+  });
+
+  if (!handle) {
+    return redirect('/collections');
+  }
+
+  // Fetch the collection data using the handle
+  const {collection} = await storefront.query(COLLECTION_QUERY, {
+    variables: {handle, ...paginationVariables},
+  });
+
+  if (!collection) {
+    throw new Response(`Collection ${handle} not found`, {
+      status: 404,
+    });
+  }
+
+  // Generate SEO data for this collection page
+  const seo = generateSEO(collection);
+
+  return json({collection, seo});
 }
+
+// Function to generate SEO data for the collection page
+const generateSEO = (collection) => {
+  let seo = {
+    title: 'Default Collection Title', // Default title in case the collection doesn't have a title
+    description: 'Default Collection Description', // Default description in case the collection doesn't have a description
+    image: 'default-image.jpg', // Default image for SEO (you can change this)
+  };
+
+  if (collection) {
+    // If collection has title and description, use them for SEO
+    seo.title = collection.title || seo.title;
+    seo.description = collection.description || seo.description;
+
+    // If collection has an image, use it for SEO
+    if (collection.image && collection.image.src) {
+      seo.image = collection.image.src;
+    }
+  }
+
+  // Truncate the description to 155 characters if needed
+  seo.description =
+    seo.description.length > 155
+      ? `${seo.description.slice(0, 152)}...`
+      : seo.description;
+
+  return seo;
+};
 
 /**
  * Load data necessary for rendering content above the fold. This is the critical data

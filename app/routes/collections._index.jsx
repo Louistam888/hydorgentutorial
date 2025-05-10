@@ -5,6 +5,27 @@ import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 /**
  * @param {LoaderFunctionArgs} args
  */
+
+
+const COLLECTIONS_QUERY = gql`
+  query FeaturedCollections {
+    collections(first: 3, query: "collection_type:smart") {
+      nodes {
+        id
+        title
+        handle
+        image {
+          altText
+          width
+          height
+          url
+        }
+        description
+      }
+    }
+  }
+`;
+
 export async function loader(args) {
   // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
@@ -74,67 +95,31 @@ export default function Collections() {
  *   index: number;
  * }}
  */
-function CollectionItem({collection, index}) {
+function CollectionItem({ collection, index }) {
   return (
-    <Link
-      className="collection-item"
-      key={collection.id}
-      to={`/collections/${collection.handle}`}
-      prefetch="intent"
-    >
-      {collection?.image && (
-        <Image
-          alt={collection.image.altText || collection.title}
-          aspectRatio="1/1"
-          data={collection.image}
-          loading={index < 3 ? 'eager' : undefined}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
-      )}
-      <h5>{collection.title}</h5>
-    </Link>
+    <div className="collection-item">
+      <Link
+        to={`/collections/${collection.handle}`}
+        prefetch="intent"
+        className="collection-image-link"
+      >
+        {collection.image && (
+          <Image
+            alt={collection.image.altText || collection.title}
+            aspectRatio="1/1"
+            data={collection.image}
+            loading={index < 3 ? 'eager' : undefined}
+          />
+        )}
+        <h5>{collection.title}</h5>
+      </Link>
+      <details>
+        <summary>View Collection</summary>
+        <p>{collection.description}</p>
+      </details>
+    </div>
   );
 }
-
-const COLLECTIONS_QUERY = `#graphql
-  fragment Collection on Collection {
-    id
-    title
-    handle
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-  }
-  query StoreCollections(
-    $country: CountryCode
-    $endCursor: String
-    $first: Int
-    $language: LanguageCode
-    $last: Int
-    $startCursor: String
-  ) @inContext(country: $country, language: $language) {
-    collections(
-      first: $first,
-      last: $last,
-      before: $startCursor,
-      after: $endCursor
-    ) {
-      nodes {
-        ...Collection
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`;
 
 /** @typedef {import('@shopify/remix-oxygen').LoaderFunctionArgs} LoaderFunctionArgs */
 /** @typedef {import('storefrontapi.generated').CollectionFragment} CollectionFragment */

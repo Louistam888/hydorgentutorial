@@ -140,6 +140,7 @@ export default function Collection() {
             key={product.id}
             product={product}
             loading={index < 8 ? 'eager' : undefined}
+              className="border-2 border-green-500" // Adds a 2px green border
           />
         )}
       </PaginatedResourceSection>

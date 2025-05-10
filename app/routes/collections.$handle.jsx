@@ -8,9 +8,6 @@ import {ProductItem} from '~/components/ProductItem';
 /**
  * @type {MetaFunction<typeof loader>}
  */
-export const meta = ({data, matches}) => {
-  return getSeoMeta(data?.seo || {}, matches[0]?.data?.seo);
-};
 
 /**
  * @param {LoaderFunctionArgs} args
@@ -22,6 +19,7 @@ export const meta = ({data}) => {
 };
 
 export async function loader({request, params, context}) {
+  console.log("loaded")
   const {handle} = params;
   const {storefront} = context;
 

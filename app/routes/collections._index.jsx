@@ -7,7 +7,7 @@ import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
  */
 
 
-const COLLECTIONS_QUERY = gql`
+const COLLECTIONS_QUERY = `#graphql
   query FeaturedCollections {
     collections(first: 3, query: "collection_type:smart") {
       nodes {

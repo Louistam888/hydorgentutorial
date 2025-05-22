@@ -3,6 +3,7 @@ import {useVariantUrl} from '~/lib/variants';
 import {Link} from '@remix-run/react';
 import {ProductPrice} from './ProductPrice';
 import {useAside} from './Aside';
+import { useState } from 'react';
 
 /**
  * A single line item in the cart. It displays the product image, title, price.
@@ -67,38 +68,54 @@ export function CartLineItem({layout, line}) {
  * hasn't yet responded that it was successfully added to the cart.
  * @param {{line: CartLine}}
  */
-function CartLineQuantity({line}) {
-  if (!line || typeof line?.quantity === 'undefined') return null;
-  const {id: lineId, quantity, isOptimistic} = line;
-  const prevQuantity = Number(Math.max(0, quantity - 1).toFixed(0));
-  const nextQuantity = Number((quantity + 1).toFixed(0));
+
+const MAX_QUANTITY = 10;
+
+function CartLineQuantity({ line }) {
+  const [quantity, setQuantity] = useState(line.quantity);
+
+  const handleQuantityChange = async (event) => {
+    const newQuantity = parseInt(event.target.value, 10);
+
+    // Check if the new quantity is within the allowed range
+    if (newQuantity < 1 || newQuantity > MAX_QUANTITY) {
+      // Display an error message to the user
+      alert(`Quantity must be between 1 and ${MAX_QUANTITY}.`);
+      return;
+    }
+
+    setQuantity(newQuantity);
+
+    try {
+      // Call the backend API to update the cart with the new quantity
+      await updateCartLineQuantity(line.id, newQuantity);
+    } catch (error) {
+      // Handle any errors, e.g., display an error message to the user
+      console.error('Error updating quantity:', error);
+    }
+  };
 
   return (
     <div className="cart-line-quantity">
-      <small>Quantity: {quantity} &nbsp;&nbsp;</small>
-      <CartLineUpdateButton lines={[{id: lineId, quantity: prevQuantity}]}>
+      <CartLineUpdateButton
+        lines={[{ id: line.id, quantity }]}
+      >
+        <input
+          id={`${lineId}-quantity`}
+          name={`${lineId}-quantity`}
+          type="number"
+          value={quantity}
+          onChange={handleQuantityChange}
+          min={1}
+          max={100} // Adjust the maximum quantity allowed
+        />
         <button
-          aria-label="Decrease quantity"
-          disabled={quantity <= 1 || !!isOptimistic}
-          name="decrease-quantity"
-          value={prevQuantity}
+          type="submit"
+          aria-label="Update Quantity"
         >
-          <span>&#8722; </span>
+          Update
         </button>
       </CartLineUpdateButton>
-      &nbsp;
-      <CartLineUpdateButton lines={[{id: lineId, quantity: nextQuantity}]}>
-        <button
-          aria-label="Increase quantity"
-          name="increase-quantity"
-          value={nextQuantity}
-          disabled={!!isOptimistic}
-        >
-          <span>&#43;</span>
-        </button>
-      </CartLineUpdateButton>
-      &nbsp;
-      <CartLineRemoveButton lineIds={[lineId]} disabled={!!isOptimistic} />
     </div>
   );
 }

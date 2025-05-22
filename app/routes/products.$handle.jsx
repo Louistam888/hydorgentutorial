@@ -6,6 +6,7 @@ import {
   getProductOptions,
   getAdjacentAndFirstAvailableVariants,
   useSelectedOptionInUrlParam,
+  ShopPayButton,
 } from '@shopify/hydrogen';
 import {ProductPrice} from '~/components/ProductPrice';
 import {ProductImage} from '~/components/ProductImage';
@@ -127,6 +128,11 @@ export default function Product() {
         <br />
         <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
         <br />
+        <ShopPayButton
+          variantIds={[selectedVariant?.id]}
+          storeDomain={'http://notarealshop.myshopify.com'}
+        />
+        ;
       </div>
       <Analytics.ProductView
         data={{
